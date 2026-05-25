@@ -1,14 +1,237 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/-ZCAN-/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>futboloyunu</title>
-    <script type="module" crossorigin src="/-ZCAN-/assets/index-D7X6Y5Xg.js"></script>
-    <link rel="stylesheet" crossorigin href="/-ZCAN-/assets/index-D64VDMd1.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>-ZCAN- Multiplayer Futbol</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
+        body { background: #1a1a1a; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; position: fixed; width: 100vw; }
+        
+        /* Transfer Menüsü */
+        #menu-container { position: absolute; width: 100vw; height: 100vh; background: rgba(20, 20, 20, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+        .menu-card { background: #2a2a2a; padding: 30px; border-radius: 15px; border: 2px solid #444; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { color: #4caf50; font-size: 24px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 14px; margin-bottom: 5px; color: #aaa; }
+        select, input { width: 100%; padding: 12px; background: #1e1e1e; border: 1px solid #555; border-radius: 8px; color: white; font-size: 16px; outline: none; }
+        select:focus, input:focus { border-color: #4caf50; }
+        .menu-btn { width: 100%; padding: 14px; background: #4caf50; border: none; border-radius: 8px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .room-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .room-btn { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; color: white; }
+        .btn-create { background: #2196f3; }
+        .btn-join { background: #9c27b0; }
+
+        /* Saha */
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #2e7d32; display: none; justify-content: center; align-items: center; border: 4px solid #fff; overflow: hidden; }
+        #pitch { position: absolute; width: 92%; height: 70%; border: 3px solid rgba(255,255,255,0.6); display: flex; justify-content: center; align-items: center; top: 12%; }
+        #center-line { position: absolute; left: 50%; width: 3px; height: 100%; background: rgba(255,255,255,0.6); }
+        #center-circle { position: absolute; width: 100px; height: 100px; border: 3px solid rgba(255,255,255,0.6); border-radius: 50%; }
+        .goal { position: absolute; width: 20px; height: 80px; background: rgba(255,255,255,0.2); border: 3px solid #fff; }
+        #goal-left { left: -20px; border-right: none; }
+        #goal-right { right: -20px; border-left: none; }
+        
+        /* Oyuncular */
+        .player { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #fff; font-weight: bold; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; transform: translate(-50%, -50%); }
+        .player .num { font-size: 14px; color: white; }
+        .player .name { position: absolute; top: -25px; background: rgba(0,0,0,0.85); padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.3); color: #fff; }
+        #player1 { background: #e53935; left: 25%; top: 50%; }
+        #player2 { background: #1e88e5; left: 75%; top: 50%; }
+        #ball { position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; border: 2px solid #000; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5; }
+        
+        /* Skor */
+        #scoreboard { position: absolute; top: 15px; background: rgba(0,0,0,0.7); padding: 5px 25px; border-radius: 20px; font-size: 20px; font-weight: bold; display: flex; gap: 15px; border: 2px solid rgba(255,255,255,0.2); }
+        #room-status { position: absolute; top: 65px; font-size: 12px; background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 10px; color: #4caf50; }
+        
+        /* Joystick */
+        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 25px; pointer-events: none; }
+        .joystick-zone { width: 90px; height: 90px; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(255,255,255,0.4); }
+        .joystick-button { width: 45px; height: 45px; background: rgba(255,255,255,0.85); border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+    <div id="menu-container">
+        <div class="menu-card">
+            <h1>-ZCAN- TRANSFER MERKEZİ</h1>
+            
+            <div class="input-group">
+                <label>Futbolcu Seçimi</label>
+                <select id="player-select">
+                    <option value="Metin Oktay">Metin Oktay (10)</option>
+                    <option value="Messi">Lionel Messi (10)</option>
+                    <option value="Pele">Pelé (10)</option>
+                    <option value="Victor Nelsson">Victor Nelsson (4)</option>
+                    <option value="Asprilla">Faustino Asprilla (11)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Oda Kodu (Multiplayer)</label>
+                <input type="text" id="room-input" value="OZCAN757">
+            </div>
+
+            <div class="room-actions">
+                <button class="room-btn btn-create" onclick="startMultiplayer('create')">Oda Kur</button>
+                <button class="room-btn btn-join" onclick="startMultiplayer('join')">Odaya Katıl</button>
+            </div>
+            
+            <button class="menu-btn" style="background: #555; margin-top: 15px;" onclick="startLocalGame()">Yerel Antrenman Modu</button>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="scoreboard">
+            <span id="score-p1" style="color:#ef5350">0</span>
+            <span>-</span>
+            <span id="score-p2" style="color:#42a5f5">0</span>
+        </div>
+        <div id="room-status">Bağlantı bekleniyor...</div>
+
+        <div id="pitch">
+            <div id="center-line"></div>
+            <div id="center-circle"></div>
+            <div id="goal-left" class="goal"></div>
+            <div id="goal-right" class="goal"></div>
+            
+            <div id="player1" class="player"><span class="name" id="p1-name">Oyuncu 1</span><span class="num" id="p1-num">10</span></div>
+            <div id="player2" class="player"><span class="name" id="p2-name">Oyuncu 2</span><span class="num" id="p2-num">7</span></div>
+            <div id="ball"></div>
+        </div>
+
+        <div class="controls">
+            <div class="joystick-zone" id="left-joy"><div class="joystick-button" id="btn-left"></div></div>
+            <div class="joystick-zone" id="right-joy"><div class="joystick-button" id="btn-right"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const menuContainer = document.getElementById('menu-container');
+        const gameContainer = document.getElementById('game-container');
+        const p1NameElem = document.getElementById('p1-name');
+        const p1NumElem = document.getElementById('p1-num');
+        const p2NameElem = document.getElementById('p2-name');
+        const p2NumElem = document.getElementById('p2-num');
+        const roomStatus = document.getElementById('room-status');
+
+        const p1 = document.getElementById('player1');
+        const p2 = document.getElementById('player2');
+        const ball = document.getElementById('ball');
+        const scoreP1 = document.getElementById('score-p1');
+        const scoreP2 = document.getElementById('score-p2');
+
+        let pos = { p1: {x: 25, y: 50}, p2: {x: 75, y: 50}, ball: {x: 50, y: 50} };
+        let score = { p1: 0, p2: 0 };
+        let ballSpeed = { x: 0, y: 0 };
+        let joy1 = { x: 0, y: 0 };
+        let joy2 = { x: 0, y: 0 };
+        let isMultiplayer = false;
+
+        const playerNumbers = { "Metin Oktay": "10", "Messi": "10", "Pele": "10", "Victor Nelsson": "4", "Asprilla": "11" };
+
+        function startLocalGame() {
+            const selected = document.getElementById('player-select').value;
+            p1NameElem.innerText = selected;
+            p1NumElem.innerText = playerNumbers[selected] || "10";
+            p2NameElem.innerText = "Yapay Zeka (Bot)";
+            p2NumElem.innerText = "7";
+            roomStatus.innerText = "MOD: Yerel Antrenman";
+            menuContainer.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            initGameEngine();
+        }
+
+        function startMultiplayer(mode) {
+            const selected = document.getElementById('player-select').value;
+            const roomCode = document.getElementById('room-input').value;
+            isMultiplayer = true;
+            p1NameElem.innerText = selected;
+            p1NumElem.innerText = playerNumbers[selected] || "10";
+            
+            if(mode === 'create') {
+                roomStatus.innerText = `ODA: ${roomCode} (Oyuncu Bekleniyor...)`;
+                p2NameElem.innerText = "Katılımcı Oyuncu";
+            } else {
+                roomStatus.innerText = `ODA: ${roomCode} (Bağlandı)`;
+                p2NameElem.innerText = "Ev Sahibi Oyuncu";
+            }
+            menuContainer.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            initGameEngine();
+        }
+
+        // Klavye Kontrolleri
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if(key === 'w') joy1.y = -1; if(key === 's') joy1.y = 1; if(key === 'a') joy1.x = -1; if(key === 'd') joy1.x = 1;
+            if(e.key === 'ArrowUp') joy2.y = -1; if(e.key === 'ArrowDown') joy2.y = 1; if(e.key === 'ArrowLeft') joy2.x = -1; if(e.key === 'ArrowRight') joy2.x = 1;
+        });
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if(['w', 's'].includes(key)) joy1.y = 0; if(['a', 'd'].includes(key)) joy1.x = 0;
+            if(['arrowup', 'arrowdown'].includes(key)) joy2.y = 0; if(['arrowleft', 'arrowright'].includes(key)) joy2.x = 0;
+        });
+
+        // Mobil Dokunmatik Joystick
+        function handleTouch(e) {
+            e.preventDefault();
+            const leftZone = document.getElementById('left-joy');
+            const rightZone = document.getElementById('right-joy');
+            const rectL = leftZone.getBoundingClientRect();
+            const rectR = rightZone.getBoundingClientRect();
+            const centerL = { x: rectL.left + rectL.width/2, y: rectL.top + rectL.height/2 };
+            const centerR = { x: rectR.left + rectR.width/2, y: rectR.top + rectR.height/2 };
+            let t1 = false, t2 = false;
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const t = e.touches[i];
+                if (t.clientX < window.innerWidth / 2) {
+                    let dx = t.clientX - centerL.x; let dy = t.clientY - centerL.y;
+                    let dist = Math.hypot(dx, dy); if (dist > 30) { dx = (dx / dist) * 30; dy = (dy / dist) * 30; }
+                    document.getElementById('btn-left').style.transform = `translate(${dx}px, ${dy}px)`;
+                    joy1.x = dx / 30; joy1.y = dy / 30; t1 = true;
+                } else {
+                    let dx = t.clientX - centerR.x; let dy = t.clientY - centerR.y;
+                    let dist = Math.hypot(dx, dy); if (dist > 30) { dx = (dx / dist) * 30; dy = (dy / dist) * 30; }
+                    document.getElementById('btn-right').style.transform = `translate(${dx}px, ${dy}px)`;
+                    joy2.x = dx / 30; joy2.y = dy / 30; t2 = true;
+                }
+            }
+            if (!t1) { joy1.x = 0; joy1.y = 0; document.getElementById('btn-left').style.transform = 'translate(0px, 0px)'; }
+            if (!t2) { joy2.x = 0; joy2.y = 0; document.getElementById('btn-right').style.transform = 'translate(0px, 0px)'; }
+        }
+        window.addEventListener('touchstart', handleTouch, {passive: false});
+        window.addEventListener('touchmove', handleTouch, {passive: false});
+        window.addEventListener('touchend', handleTouch, {passive: false});
+
+        function initGameEngine() {
+            setInterval(() => {
+                pos.p1.x = Math.max(4, Math.min(96, pos.p1.x + joy1.x * 1.3));
+                pos.p1.y = Math.max(4, Math.min(96, pos.p1.y + joy1.y * 1.3));
+                if(!isMultiplayer) {
+                    pos.p2.x += Math.sign(pos.ball.x - pos.p2.x) * 0.6;
+                    pos.p2.y += Math.sign(pos.ball.y - pos.p2.y) * 0.6;
+                } else {
+                    pos.p2.x = Math.max(4, Math.min(96, pos.p2.x + joy2.x * 1.3));
+                    pos.p2.y = Math.max(4, Math.min(96, pos.p2.y + joy2.y * 1.3));
+                }
+                pos.ball.x += ballSpeed.x; pos.ball.y += ballSpeed.y;
+                ballSpeed.x *= 0.96; ballSpeed.y *= 0.96;
+
+                if(Math.hypot(pos.p1.x - pos.ball.x, pos.p1.y - pos.ball.y) < 4.5) { ballSpeed.x = (pos.ball.x - pos.p1.x) * 0.45; ballSpeed.y = (pos.ball.y - pos.p1.y) * 0.45; }
+                if(Math.hypot(pos.p2.x - pos.ball.x, pos.p2.y - pos.ball.y) < 4.5) { ballSpeed.x = (pos.ball.x - pos.p2.x) * 0.45; ballSpeed.y = (pos.ball.y - pos.p2.y) * 0.45; }
+
+                if(pos.ball.x < 4) { if(pos.ball.y > 35 && pos.ball.y < 65) { score.p2++; resetPitch(); } else { pos.ball.x = 4; ballSpeed.x *= -1; } }
+                if(pos.ball.x > 96) { if(pos.ball.y > 35 && pos.ball.y < 65) { score.p1++; resetPitch(); } else { pos.ball.x = 96; ballSpeed.x *= -1; } }
+                if(pos.ball.y < 4) { pos.ball.y = 4; ballSpeed.y *= -1; } if(pos.ball.y > 96) { pos.ball.y = 96; ballSpeed.y *= -1; }
+
+                p1.style.left = pos.p1.x + '%'; p1.style.top = pos.p1.y + '%';
+                p2.style.left = pos.p2.x + '%'; p2.style.top = pos.p2.y + '%';
+                ball.style.left = pos.ball.x + '%'; ball.style.top = pos.ball.y + '%';
+                scoreP1.innerText = score.p1; scoreP2.innerText = score.p2;
+            }, 1000 / 60);
+        }
+        function resetPitch() { pos.ball = {x: 50, y: 50}; pos.p1 = {x: 25, y: 50}; pos.p2 = {x: 75, y: 50}; ballSpeed = {x: 0, y: 0}; }
+    </script>
+</body>
 </html>
