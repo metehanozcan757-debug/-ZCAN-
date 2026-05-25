@@ -1,13 +1,123 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>futboloyunu</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>-ZCAN- Futbol Oyunu</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background: #1e1e1e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #2e7d32; display: flex; justify-content: center; align-items: center; border: 4px solid #fff; }
+        #pitch { position: absolute; width: 90%; height: 85%; border: 3px solid rgba(255,255,255,0.6); display: flex; justify-content: center; align-items: center; }
+        #center-line { position: absolute; left: 50%; width: 3px; height: 100%; background: rgba(255,255,255,0.6); }
+        #center-circle { position: absolute; width: 120px; height: 120px; border: 3px solid rgba(255,255,255,0.6); border-radius: 50%; }
+        .goal { position: absolute; width: 25px; height: 100px; background: rgba(255,255,255,0.2); border: 3px solid #fff; }
+        #goal-left { left: -25px; border-right: none; }
+        #goal-right { right: -25px; border-left: none; }
+        .player { position: absolute; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; font-weight: bold; font-size: 12px; display: flex; justify-content: center; align-items: center; transition: all 0.1s linear; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        #player1 { background: #e53935; left: 20%; top: 50%; transform: translate(-50%, -50%); }
+        #player2 { background: #1e88e5; right: 20%; top: 50%; transform: translate(50%, -50%); }
+        #ball { position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; border: 1px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.4); left: 50%; top: 50%; transform: translate(-50%, -50%); transition: all 0.1s linear; }
+        #scoreboard { position: absolute; top: 20px; background: rgba(0,0,0,0.7); padding: 10px 30px; border-radius: 20px; font-size: 24px; font-weight: bold; letter-spacing: 2px; display: flex; gap: 15px; border: 2px solid rgba(255,255,255,0.2); }
+        #score-p1 { color: #ef5350; }
+        #score-p2 { color: #42a5f5; }
+        .controls { position: absolute; bottom: 20px; width: 90%; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; }
+        .joystick-zone { width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
+        .joystick-button { width: 50px; height: 50px; background: rgba(255,255,255,0.7); border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        #title-banner { position: absolute; top: 75px; font-size: 14px; background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 10px; color: rgba(255,255,255,0.8); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="scoreboard">
+            <span id="score-p1">0</span>
+            <span>-</span>
+            <span id="score-p2">0</span>
+        </div>
+        <div id="title-banner">METEHAN ÖZCAN FUTBOL ALTYAPISI</div>
+
+        <div id="pitch">
+            <div id="center-line"></div>
+            <div id="center-circle"></div>
+            <div id="goal-left" class="goal"></div>
+            <div id="goal-right" class="goal"></div>
+            
+            <div id="player1" class="player">10</div>
+            <div id="player2" class="player">7</div>
+            <div id="ball"></div>
+        </div>
+
+        <div class="controls">
+            <div class="joystick-zone" id="left-joy"><div class="joystick-button"></div></div>
+            <div class="joystick-zone" id="right-joy"><div class="joystick-button"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const p1 = document.getElementById('player1');
+        const p2 = document.getElementById('player2');
+        const ball = document.getElementById('ball');
+        const scoreP1 = document.getElementById('score-p1');
+        const scoreP2 = document.getElementById('score-p2');
+
+        let pos = { p1: {x: 20, y: 50}, p2: {x: 80, y: 50}, ball: {x: 50, y: 50} };
+        let score = { p1: 0, p2: 0 };
+
+        window.addEventListener('keydown', (e) => {
+            if(e.key.toLowerCase() === 'w' && pos.p1.y > 10) pos.p1.y -= 4;
+            if(e.key.toLowerCase() === 's' && pos.p1.y < 90) pos.p1.y += 4;
+            if(e.key.toLowerCase() === 'a' && pos.p1.x > 5) pos.p1.x -= 4;
+            if(e.key.toLowerCase() === 'd' && pos.p1.x < 48) pos.p1.x += 4;
+
+            if(e.key === 'ArrowUp' && pos.p2.y > 10) pos.p2.y -= 4;
+            if(e.key === 'ArrowDown' && pos.p2.y < 90) pos.p2.y += 4;
+            if(e.key === 'ArrowLeft' && pos.p2.x > 52) pos.p2.x -= 4;
+            if(e.key === 'ArrowRight' && pos.p2.x < 95) pos.p2.x += 4;
+
+            updatePositions();
+            checkBallCollision();
+        });
+
+        function updatePositions() {
+            p1.style.left = pos.p1.x + '%';
+            p1.style.top = pos.p1.y + '%';
+            p2.style.left = pos.p2.x + '%';
+            p2.style.top = pos.p2.y + '%';
+            ball.style.left = pos.ball.x + '%';
+            ball.style.top = pos.ball.y + '%';
+        }
+
+        function checkBallCollision() {
+            let d1 = Math.hypot(pos.p1.x - pos.ball.x, pos.p1.y - pos.ball.y);
+            let d2 = Math.hypot(pos.p2.x - pos.ball.x, pos.p2.y - pos.ball.y);
+
+            if(d1 < 4) { pos.ball.x += 5; pos.ball.y += (pos.ball.y - pos.p1.y) * 0.5; }
+            if(d2 < 4) { pos.ball.x -= 5; pos.ball.y += (pos.ball.y - pos.p2.y) * 0.5; }
+
+            if(pos.ball.x < 2) {
+                if(pos.ball.y > 40 && pos.ball.y < 60) { score.p2++; resetPitch(); }
+                else pos.ball.x = 2;
+            }
+            if(pos.ball.x > 98) {
+                if(pos.ball.y > 40 && pos.ball.y < 60) { score.p1++; resetPitch(); }
+                else pos.ball.x = 98;
+            }
+            if(pos.ball.y < 5) pos.ball.y = 5;
+            if(pos.ball.y > 95) pos.ball.y = 95;
+
+            updatePositions();
+        }
+
+        function resetPitch() {
+            scoreP1.innerText = score.p1;
+            scoreP2.innerText = score.p2;
+            pos.ball = {x: 50, y: 50};
+            pos.p1 = {x: 20, y: 50};
+            pos.p2 = {x: 80, y: 50};
+        }
+
+        updatePositions();
+    </script>
+</body>
 </html>
