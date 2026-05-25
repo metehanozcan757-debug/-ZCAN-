@@ -46,7 +46,7 @@
         /* Joystick */
         .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 25px; pointer-events: none; }
         .joystick-zone { width: 90px; height: 90px; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(255,255,255,0.4); touch-action: none; }
-        .joystick-button { width: 45px; height: 45px; background: rgba(255,255,255,0.85); border-radius: 50%; }
+        .joystick-button { width: 45px; height: 45px; background: rgba(255,255,255,0.85); border-radius: 50%; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -172,37 +172,41 @@
             if(['arrowup', 'arrowdown'].includes(key)) joy2.y = 0; if(['arrowleft', 'arrowright'].includes(key)) joy2.x = 0;
         });
 
-        // Mobil Dokunmatik Joystick
-        function handleTouch(e) {
-            e.preventDefault();
-            const leftZone = document.getElementById('left-joy');
-            const rightZone = document.getElementById('right-joy');
-            const rectL = leftZone.getBoundingClientRect();
-            const rectR = rightZone.getBoundingClientRect();
-            const centerL = { x: rectL.left + rectL.width/2, y: rectL.top + rectL.height/2 };
-            const centerR = { x: rectR.left + rectR.width/2, y: rectR.top + rectR.height/2 };
-            let t1 = false, t2 = false;
+        // Joystick Dokunmatik Yapısı (Yenilenen Güvenli Bölge)
+        const leftJoyZone = document.getElementById('left-joy');
+        const rightJoyZone = document.getElementById('right-joy');
 
-            for (let i = 0; i < e.touches.length; i++) {
-                const t = e.touches[i];
-                if (t.clientX < window.innerWidth / 2) {
-                    let dx = t.clientX - centerL.x; let dy = t.clientY - centerL.y;
-                    let dist = Math.hypot(dx, dy); if (dist > 30) { dx = (dx / dist) * 30; dy = (dy / dist) * 30; }
-                    document.getElementById('btn-left').style.transform = `translate(${dx}px, ${dy}px)`;
-                    joy1.x = dx / 30; joy1.y = dy / 30; t1 = true;
-                } else {
-                    let dx = t.clientX - centerR.x; let dy = t.clientY - centerR.y;
-                    let dist = Math.hypot(dx, dy); if (dist > 30) { dx = (dx / dist) * 30; dy = (dy / dist) * 30; }
-                    document.getElementById('btn-right').style.transform = `translate(${dx}px, ${dy}px)`;
-                    joy2.x = dx / 30; joy2.y = dy / 30; t2 = true;
-                }
-            }
-            if (!t1) { joy1.x = 0; joy1.y = 0; document.getElementById('btn-left').style.transform = 'translate(0px, 0px)'; }
-            if (!t2) { joy2.x = 0; joy2.y = 0; document.getElementById('btn-right').style.transform = 'translate(0px, 0px)'; }
+        function setupJoystick(zone, joyRef, btnId) {
+            const button = document.getElementById(btnId);
+            
+            zone.addEventListener('touchstart', (e) => {
+                updateJoystick(e.targetTouches[0], zone, joyRef, button);
+            });
+            zone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                updateJoystick(e.targetTouches[0], zone, joyRef, button);
+            });
+            zone.addEventListener('touchend', () => {
+                joyRef.x = 0; joyRef.y = 0;
+                button.style.transform = 'translate(0px, 0px)';
+            });
         }
-        window.addEventListener('touchstart', handleTouch, {passive: false});
-        window.addEventListener('touchmove', handleTouch, {passive: false});
-        window.addEventListener('touchend', handleTouch, {passive: false});
+
+        function updateJoystick(touch, zone, joyRef, button) {
+            const rect = zone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            let dist = Math.hypot(dx, dy);
+
+            if (dist > 30) { dx = (dx / dist) * 30; dy = (dy / dist) * 30; }
+            button.style.transform = `translate(${dx}px, ${dy}px)`;
+            joyRef.x = dx / 30; joyRef.y = dy / 30;
+        }
+
+        setupJoystick(leftJoyZone, joy1, 'btn-left');
+        setupJoystick(rightJoyZone, joy2, 'btn-right');
 
         function initGameEngine() {
             setInterval(() => {
